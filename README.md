@@ -1,5 +1,7 @@
 # Desert Isle
 
+![Desert Isle: the orange robot on a sailboat by the dock, a 15 m crate tower the blue robot built, the hut, and the volcano island beyond](docs/screenshot.jpg)
+
 A 3D desert-island sandbox where **two robots**, each driven by its own local **Ollama** LLM conversation through tool
 calls, live on two islands. The orange robot starts on the big island, the blue one on a small island about 17 cells of
 open sea to the east. They can see each other from afar, hear each other up close, and the only ways across are building
