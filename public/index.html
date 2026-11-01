@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Desert Isle</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏝️</text></svg>">
+  <link rel="stylesheet" href="style.css">
+  <script type="importmap">
+    { "imports": {
+        "three": "./vendor/three/build/three.module.js",
+        "three/addons/": "./vendor/three/examples/jsm/"
+    } }
+  </script>
+</head>
+<body>
+  <main id="app">
+    <section id="view">
+      <div class="hud">
+        <div id="hudStatus" class="hud-status"></div>
+        <div class="hud-buttons">
+          <button id="btnBubble" class="chip on" title="Show a thought bubble over the robot">Bubble</button>
+          <button id="btnTalk" class="chip on" title="Show what the robots have said aloud">Talk</button>
+          <button id="btnFollow" class="chip on" title="Camera follows the robot">Follow</button>
+          <button id="btnGrid" class="chip on" title="Show the 1 m grid">Grid</button>
+          <button id="btnCamOrange" class="chip" title="Keep the camera on the orange robot (click again to follow whoever acts)">Orange</button>
+          <button id="btnCamBlue" class="chip" title="Keep the camera on the blue robot (click again to follow whoever acts)">Blue</button>
+          <button id="btnCam" class="chip" title="Reset the camera">Recenter</button>
+        </div>
+      </div>
+      <div id="talk" class="talk">
+        <div class="thoughts-head">
+          <span>Talk</span>
+          <button id="btnTalkClear" class="chip" title="Clear this window">Clear</button>
+        </div>
+        <div id="talkList" class="thought-list"><p class="thought-empty">Anything the robots say aloud appears here.</p></div>
+        <form id="voiceForm" class="voice-form" autocomplete="off" title="Speak to the robots as the Voice: they hear it wherever they are, with the result of their next action">
+          <select id="voiceTo" title="Who hears the Voice">
+            <option value="all">Both</option>
+            <option value="orange">Orange</option>
+            <option value="blue">Blue</option>
+          </select>
+          <input id="voiceText" placeholder="Speak as the Voice…" maxlength="2000" spellcheck="true">
+          <button class="chip">Speak</button>
+        </form>
+      </div>
+      <div class="legend">Drag to orbit · scroll to zoom · right-drag to pan · hover a cell for its coordinates</div>
+    </section>
+
+    <aside id="panel">
+      <header>
+        <h1>Desert Isle</h1>
+        <span id="conn" class="conn">connecting…</span>
+      </header>
+
+      <div class="row">
+        <label class="grow">Model
+          <select id="model"></select>
+        </label>
+        <label title="Let the model reason before each action: slower, usually smarter. Levels only matter for models that support them.">Think
+          <select id="think">
+            <option value="off">Off</option>
+            <option value="on">On</option>
+            <option value="low" selected>Low</option>
+            <option value="medium">Medium</option>
+            <option value="high">High</option>
+          </select>
+        </label>
+      </div>
+
+      <label>Instruction for the robots
+        <textarea id="instruction" rows="3" placeholder="e.g. Explore this place and write what you learn in your diary."></textarea>
+      </label>
+      <label>Blue robot's instruction, if different
+        <textarea id="instructionBlue" rows="2" placeholder="(blank: same as above)"></textarea>
+      </label>
+      <div class="examples" id="examples"></div>
+
+      <div class="row robots">
+        <span class="muted">Run:</span>
+        <label class="check"><input type="checkbox" id="runOrange" checked> <span class="who orange">Orange</span> on the big island</label>
+        <label class="check"><input type="checkbox" id="runBlue" checked> <span class="who blue">Blue</span> on the small island</label>
+        <label class="check" title="Taking turns: neither robot starts its next turn until the other has finished its current one, so a faster model can't race ahead and what one says reaches the other before its next decision. 'When together': only while they are within earshot or have talked in the last game hour.">Take turns
+          <select id="lockstep">
+            <option value="together" selected>When together</option>
+            <option value="always">Always</option>
+            <option value="never">Never</option>
+          </select>
+        </label>
+      </div>
+      <div class="row actions">
+        <button id="btnRun" class="primary">Run</button>
+        <button id="btnContinue" disabled title="Give the robot more turns on the same instruction, keeping its conversation">Continue</button>
+        <button id="btnStop" disabled>Stop</button>
+        <button id="btnReset" title="Put everything back where it started">Reset islands</button>
+      </div>
+
+      <div class="row">
+        <label class="grow">Animation speed <span id="speedVal">1×</span>
+          <input id="speed" type="range" min="0.25" max="4" step="0.25" value="1">
+        </label>
+        <label title="How much in-game time each robot action takes. Time only passes when a robot acts.">Time passes
+          <select id="timeScale">
+            <option value="1">Slowly (a day ≈ 480 actions)</option>
+            <option value="3" selected>Normal (≈ 160 actions)</option>
+            <option value="6">Fast (≈ 80 actions)</option>
+            <option value="12">Very fast (≈ 40 actions)</option>
+          </select>
+        </label>
+      </div>
+
+      <details class="advanced">
+        <summary>Model settings &amp; system prompt</summary>
+        <div class="row">
+          <label>Temperature <input id="temperature" type="number" min="0" max="2" step="0.1" value="0.3"></label>
+          <label title="Tokens of conversation the model can hold. Blank: as much as the model allows (OpenAI-compatible server: its full context; Ollama: 65536).">Context <input id="numCtx" type="number" min="2048" max="262144" step="1024" placeholder="auto"></label>
+          <label>Max turns <input id="maxSteps" type="number" min="1" max="1000" value="200"></label>
+        </div>
+        <label>System prompt
+          <textarea id="system" rows="10" spellcheck="false"></textarea>
+        </label>
+        <button id="btnSysReset" class="small">Restore default prompt</button>
+      </details>
+
+      <details class="diary" id="diaryBox">
+        <summary>Robot diaries <small>kept across resets</small> <small id="diaryFull" title="How much of the diary the robot can be shown. Past 100% its oldest entries are hidden from it; from 50% it can rewrite_diary."></small></summary>
+        <div class="row tabs">
+          <button id="diaryTabOrange" class="small tab"><span class="who orange">Orange</span> <span id="diaryCountOrange">0</span></button>
+          <button id="diaryTabBlue" class="small tab"><span class="who blue">Blue</span> <span id="diaryCountBlue">0</span></button>
+        </div>
+        <ol id="diaryList"></ol>
+        <div class="row">
+          <button id="btnDiarySave" class="small">Save as text</button>
+          <button id="btnDiaryClear" class="small">Erase diary</button>
+        </div>
+      </details>
+
+      <div class="log-head">
+        <div class="row tabs">
+          <button id="thoughtTabOrange" class="small tab"><span class="who orange">Orange</span> thoughts</button>
+          <button id="thoughtTabBlue" class="small tab"><span class="who blue">Blue</span> thoughts</button>
+        </div>
+        <button id="btnThoughtsClear" class="small" title="Clear this robot's list">Clear</button>
+      </div>
+      <div id="thoughtList" class="thought-list" aria-live="polite"></div>
+
+      <form id="manual" class="manual" autocomplete="off">
+        <select id="manualWho" title="Which robot the manual command drives"><option value="orange">Orange</option><option value="blue">Blue</option></select>
+        <input id="manualCmd" placeholder="Manual: walk_to 3 4 · pick_up palm · paddle east 3 · sail south 20 · board · wait 60 · look · describe · battery 20" spellcheck="false">
+        <button>Do</button>
+      </form>
+    </aside>
+  </main>
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>

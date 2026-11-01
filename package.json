@@ -1,0 +1,15 @@
+{
+  "name": "desert-isle",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Desert island robot sandbox driven by local Ollama LLMs",
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "start": "node server.mjs",
+    "test": "node --test test/*.test.mjs"
+  },
+  "dependencies": {
+    "three": "0.186.1"
+  }
+}
